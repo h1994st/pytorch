@@ -122,3 +122,28 @@ class Linear(nn.Linear):
         if float_linear.bias is not None:
             qref_linear.bias = torch.nn.Parameter(float_linear.bias.detach())
         return qref_linear
+
+
+class LinearReLU(Linear):
+    """ TODO: write this
+    """
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        TODO: write this
+        """
+        weight_dequant = self.get_weight()
+        x = F.linear(x, weight_dequant, self.bias)
+        x = F.relu(x)
+        return x
+
+    @classmethod
+    def from_float(cls, float_linear_relu, weight_qparams):
+        qref_linear_relu = LinearReLU(
+            float_linear_relu.in_features, float_linear_relu.out_features,
+            float_linear_relu.bias is not None, device=float_linear_relu.weight.device,
+            dtype=float_linear_relu.weight.dtype, weight_qparams=weight_qparams)
+        qref_linear_relu.weight = torch.nn.Parameter(float_linear_relu.weight.detach())
+        if float_linear_relu.bias is not None:
+            qref_linear_relu.bias = torch.nn.Parameter(float_linear_relu.bias.detach())
+        return qref_linear_relu
+

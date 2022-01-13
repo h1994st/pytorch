@@ -14,11 +14,12 @@ LOWER_MODULE_MAP: Dict[Type[torch.nn.Module], Type[ReferenceableQuantizedModule]
     torch.nn.quantized._reference.Conv1d: torch.nn.quantized.Conv1d,
     torch.nn.quantized._reference.Conv2d: torch.nn.quantized.Conv2d,
     torch.nn.quantized._reference.Conv3d: torch.nn.quantized.Conv3d,
+    torch.nn.quantized._reference.LinearReLU: torch.nn.intrinsic.quantized.LinearReLU,
 }
 
 def _lower_weighted_ref_module(model: QuantizedGraphModule, ref_class: Type[torch.nn.Module]) -> QuantizedGraphModule:
     """
-    Traverse the graph and find dequantize - ref module - quantize patterns
+    Traverse the graph and find dequantize - ref module (- ReLU) - quantize patterns
     and replace them with the quantized version of the ref module.
     """
     if ref_class not in LOWER_MODULE_MAP:
@@ -35,6 +36,7 @@ def _lower_weighted_ref_module(model: QuantizedGraphModule, ref_class: Type[torc
     for n in model.graph.nodes:
         if not is_match(modules, n, pattern):
             continue
+        print("MATCHED!! %s" % n)
         q_node = n
         ref_node = q_node.args[0]
         dq_node = ref_node.args[0]
@@ -58,7 +60,7 @@ def _lower_weighted_ref_module(model: QuantizedGraphModule, ref_class: Type[torc
         ref_module = modules[ref_node.target]
         output_scale = getattr(model, scale_node.target)
         output_zero_point = getattr(model, zero_point_node.target)
-        assert issubclass(q_class, ReferenceableQuantizedModule)  # suppress mypy warnings
+        # assert issubclass(q_class, ReferenceableQuantizedModule)  # suppress mypy warnings
         q_module = q_class.from_reference(ref_module, output_scale, output_zero_point)
 
         # replace reference module with quantized module
